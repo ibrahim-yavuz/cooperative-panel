@@ -115,14 +115,15 @@ class PayerResource extends Resource
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('pay_records')->label('Pay Records')
                     ->tooltip(fn (Payer $record): string => 'Pay Records of '.$record->first_name.' '.$record->second_name)
-                    ->url(fn (Payer $record): string => 'pay-records?tableFilters[payer_id][payer_id]='.$record->id),
+                    ->url(fn (Payer $record): string => 'pay-records?tableFilters[payer][values][0]='.$record->id),
                 Tables\Actions\Action::make('pay')->requiresConfirmation()->label('Pay Monthly Share')
                     ->action(function(Payer $record) {
-                        $pay_record = PayRecord::query()->where('payer_id', $record->id)->latest('created_at')->first();
+                        $pay_record = PayRecord::query()->where('payer_id', $record->id)->latest('paid_date')->first();
 
-                        if (!isset($pay_record->created_at) || ($pay_record->created_at->month != Carbon::now()->month || $pay_record->created_at->year != Carbon::now()->year)){
+                        if (!isset($pay_record->paid_date) || (Carbon::createFromTimeString($pay_record->paid_date)->month != Carbon::now()->month || Carbon::createFromTimeString($pay_record->paid_date)->year != Carbon::now()->year)){
                             $pay_record = new PayRecord();
                             $pay_record->payer_id = $record->id;
+                            $pay_record->paid_date = Carbon::now();
                             $pay_record->save();
 
                             Notification::make()
